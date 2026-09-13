@@ -1,4 +1,4 @@
-package com.example.stapterminal.nfc
+package com.stapterminal.nfc
 
 /**
  * Terminal-side (reader) definition of the STap payment protocol: a custom AID plus a

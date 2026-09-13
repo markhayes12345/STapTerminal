@@ -1,4 +1,4 @@
-package com.example.stapterminal.ui.theme
+package com.stapterminal.ui.theme
 
 import android.app.Activity
 import android.os.Build

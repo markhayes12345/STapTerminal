@@ -1,8 +1,8 @@
-package com.example.stapterminal.nfc
+package com.stapterminal.nfc
 
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
-import com.example.stapterminal.solana.SolanaClient
+import com.stapterminal.solana.SolanaClient
 import java.io.IOException
 import java.math.BigDecimal
 

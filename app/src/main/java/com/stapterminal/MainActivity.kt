@@ -1,4 +1,4 @@
-package com.example.stapterminal
+package com.stapterminal
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -12,9 +12,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.example.stapterminal.solana.SolanaClient
-import com.example.stapterminal.solana.SolanaNetwork
-import com.example.stapterminal.ui.theme.STapTerminalTheme
+import com.stapterminal.solana.SolanaClient
+import com.stapterminal.solana.SolanaNetwork
+import com.stapterminal.ui.theme.STapTerminalTheme
 
 private sealed interface Screen {
     data object KeyPad : Screen

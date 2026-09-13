@@ -1,4 +1,4 @@
-package com.example.stapterminal.solana
+package com.stapterminal.solana
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

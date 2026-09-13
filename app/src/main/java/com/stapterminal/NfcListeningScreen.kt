@@ -1,4 +1,4 @@
-package com.example.stapterminal
+package com.stapterminal
 
 import android.app.Activity
 import android.content.Intent
@@ -39,11 +39,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.stapterminal.nfc.PaymentState
-import com.example.stapterminal.nfc.TerminalNfcTransactor
-import com.example.stapterminal.solana.SolanaClient
-import com.example.stapterminal.solana.SolanaNetwork
-import com.example.stapterminal.ui.theme.STapTerminalTheme
+import com.stapterminal.nfc.PaymentState
+import com.stapterminal.nfc.TerminalNfcTransactor
+import com.stapterminal.solana.SolanaClient
+import com.stapterminal.solana.SolanaNetwork
+import com.stapterminal.ui.theme.STapTerminalTheme
 import java.math.BigDecimal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
