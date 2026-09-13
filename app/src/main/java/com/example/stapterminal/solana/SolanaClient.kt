@@ -4,7 +4,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.sol4k.Base58
 import org.sol4k.Connection
-import org.sol4k.Keypair
 import org.sol4k.PublicKey
 import org.sol4k.RpcUrl
 import org.sol4k.TransactionMessage
@@ -21,19 +20,18 @@ enum class SolanaNetwork {
 /**
  * Wrapper around the Solana JSON-RPC API for checking balances and sending USDC.
  *
- * Set [publicKey] (and [privateKey] for [transferUsdc]) before use. All network calls
- * are suspend functions and switch to [Dispatchers.IO] internally, so they are safe to
- * call directly from a Composable's coroutine scope or a ViewModel.
+ * Set [publicKey] before use. All network calls are suspend functions and switch to
+ * [Dispatchers.IO] internally, so they are safe to call directly from a Composable's
+ * coroutine scope or a ViewModel.
  */
 class SolanaClient(network: SolanaNetwork) {
 
-    /** Base58-encoded wallet address, used as the default account and, for transfers, the fee payer. */
-    // this is the client public key
+    /**
+     * Base58-encoded wallet address of this terminal, used as the default account for
+     * balance checks and as the recipient of USDC transfers. The terminal never holds a
+     * private key - the payer's key lives on the STap wallet and signs over NFC.
+     */
     var publicKey: String = "E4MDwcLeBJWrRXF9SFXtZST9m61JAdTp5459Ww7LAcp"
-
-    /** Base58-encoded secret key matching [publicKey]. Only required for [transferUsdc]. */
-    // this is the client private key
-    var privateKey: String = "5wL6otBCf422DUvDRmkgK2cJBXZ6wRJFgsEVsc6QusUcNa8MkbPTTFBHUS1DAPBtCMMxFvgWZrVpfTbLWkNmCvZn"
 
     private val connection = Connection(
         when (network) {
@@ -64,15 +62,17 @@ class SolanaClient(network: SolanaNetwork) {
     }
 
     /**
-     * Transfers [amount] USDC from [publicKey] to [toAddress]. Requires [publicKey] and
-     * [privateKey] to be set. Returns the transaction signature.
+     * Builds the unsigned message for a transfer of [amount] USDC from [fromAddress] to
+     * [toAddress], with a freshly fetched blockhash. [fromAddress] pays the transfer and
+     * the network fee, and must sign the returned message's [TransactionMessage.serialize]
+     * bytes before it can be submitted with [submitSignedUsdcTransfer].
      */
-    suspend fun transferUsdc(toAddress: String, amount: BigDecimal): String = withContext(Dispatchers.IO) {
-        check(publicKey.isNotBlank()) { "publicKey has not been set" }
-        check(privateKey.isNotBlank()) { "privateKey has not been set" }
-
-        val owner = PublicKey(publicKey)
-        val signer = Keypair.fromSecretKey(Base58.decode(privateKey))
+    suspend fun buildUsdcTransferMessage(
+        fromAddress: String,
+        toAddress: String,
+        amount: BigDecimal,
+    ): TransactionMessage = withContext(Dispatchers.IO) {
+        val owner = PublicKey(fromAddress)
         val fromTokenAccount = PublicKey.findProgramDerivedAddress(owner, usdcMint).publicKey
         val toTokenAccount = PublicKey.findProgramDerivedAddress(PublicKey(toAddress), usdcMint).publicKey
         val rawAmount = amount.movePointRight(USDC_DECIMALS).setScale(0, RoundingMode.DOWN).longValueExact()
@@ -85,12 +85,20 @@ class SolanaClient(network: SolanaNetwork) {
             amount = rawAmount,
             decimals = USDC_DECIMALS,
         )
-        val message = TransactionMessage.newMessage(owner, connection.getLatestBlockhash(), instruction)
-        val transaction = VersionedTransaction(message)
-        transaction.sign(signer)
-
-        connection.sendTransaction(transaction)
+        TransactionMessage.newMessage(owner, connection.getLatestBlockhash(), instruction)
     }
+
+    /**
+     * Attaches the payer's raw ed25519 [signature] (as produced by signing
+     * `message.serialize()`) to [message] and submits the resulting transaction. Returns
+     * the transaction signature.
+     */
+    suspend fun submitSignedUsdcTransfer(message: TransactionMessage, signature: ByteArray): String =
+        withContext(Dispatchers.IO) {
+            val transaction = VersionedTransaction(message)
+            transaction.addSignature(Base58.encode(signature))
+            connection.sendTransaction(transaction)
+        }
 
     private companion object {
         const val LAMPORTS_PER_SOL_DECIMALS = 9

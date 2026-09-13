@@ -60,15 +60,14 @@ class SolanaClientTest {
     }
 
     @Test
-    fun transferUsdc() = runBlocking {
+    fun buildUsdcTransferMessage() = runBlocking {
         val client = SolanaClient(SolanaNetwork.MAINNET)
-        // Solana's System Program address always exists on every cluster, so this
-        // is a safe address to query without needing a funded test wallet.
-        val address = "B1BUPRpzk12T2WqkUj1X221KTdv8Qf8skRPC2spe53ik"
+        val fromAddress = "E4MDwcLeBJWrRXF9SFXtZST9m61JAdTp5459Ww7LAcp"
+        val toAddress = "B1BUPRpzk12T2WqkUj1X221KTdv8Qf8skRPC2spe53ik"
 
-        val transactionSignature = client.transferUsdc(address, BigDecimal(0.1))
+        val message = client.buildUsdcTransferMessage(fromAddress, toAddress, BigDecimal("0.10"))
 
-        println("transactionSignature $transactionSignature")
+        assertTrue("serialized message should not be empty", message.serialize().isNotEmpty())
     }
 
 }
