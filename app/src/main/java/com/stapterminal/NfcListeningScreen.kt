@@ -1,9 +1,8 @@
-package com.example.stapterminal
+package com.stapterminal
 
 import android.app.Activity
 import android.content.Intent
 import android.nfc.NfcAdapter
-import android.nfc.Tag
 import android.os.Bundle
 import android.provider.Settings
 import androidx.compose.animation.core.RepeatMode
@@ -24,7 +23,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -33,23 +35,44 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.stapterminal.ui.theme.STapTerminalTheme
+import com.stapterminal.nfc.PaymentState
+import com.stapterminal.nfc.TerminalNfcTransactor
+import com.stapterminal.solana.SolanaClient
+import com.stapterminal.solana.SolanaNetwork
+import com.stapterminal.ui.theme.STapTerminalTheme
+import java.math.BigDecimal
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @Composable
 fun NfcListeningScreen(
     modifier: Modifier = Modifier,
+    amount: String,
+    solanaClient: SolanaClient,
     onCancel: () -> Unit = {},
-    onTagDetected: (Tag) -> Unit = {}
+    onFinished: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val nfcAdapter = remember { NfcAdapter.getDefaultAdapter(context) }
+    val scope = rememberCoroutineScope()
+    val transactor = remember(solanaClient) { TerminalNfcTransactor(solanaClient) }
+    var paymentState by remember { mutableStateOf<PaymentState>(PaymentState.WaitingForCard) }
 
     DisposableEffect(Unit) {
         val activity = context as? Activity
-        val callback = NfcAdapter.ReaderCallback { tag -> onTagDetected(tag) }
+        val callback = NfcAdapter.ReaderCallback { tag ->
+            if (paymentState == PaymentState.WaitingForCard) {
+                scope.launch(Dispatchers.IO) {
+                    transactor.processTag(tag, BigDecimal(amount)) { state ->
+                        scope.launch { paymentState = state }
+                    }
+                }
+            }
+        }
 
         if (activity != null && nfcAdapter != null && nfcAdapter.isEnabled) {
             val options = Bundle().apply {
@@ -84,26 +107,56 @@ fun NfcListeningScreen(
         val statusText = when {
             nfcAdapter == null -> "This device doesn't support NFC"
             !nfcAdapter.isEnabled -> "NFC is turned off"
-            else -> "Waiting for card or device"
+            else -> when (val state = paymentState) {
+                PaymentState.WaitingForCard -> "Waiting for card or device"
+                PaymentState.CardDetected -> "STap wallet detected"
+                PaymentState.AwaitingSignature -> "Waiting for wallet to sign…"
+                PaymentState.SubmittingTransaction -> "Submitting payment…"
+                is PaymentState.Success -> "Payment successful"
+                is PaymentState.Failure -> "Payment failed"
+            }
         }
         Text(text = statusText, fontSize = 20.sp, fontWeight = FontWeight.Medium)
 
         Spacer(8.dp)
 
-        if (nfcAdapter != null && !nfcAdapter.isEnabled) {
-            Text(text = "Turn on NFC to continue", fontSize = 14.sp)
-            Spacer(16.dp)
-            Button(onClick = { context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS)) }) {
-                Text("Open NFC settings")
+        when (val state = paymentState) {
+            is PaymentState.Success -> {
+                Text(text = "Tx: ${state.signature}", fontSize = 12.sp, textAlign = TextAlign.Center)
+                Spacer(24.dp)
+                Button(onClick = onFinished) {
+                    Text("Done")
+                }
             }
-            Spacer(16.dp)
-        } else {
-            Text(text = "Hold the card or device near the back of the phone", fontSize = 14.sp)
-            Spacer(32.dp)
-        }
 
-        OutlinedButton(onClick = onCancel) {
-            Text("Cancel")
+            is PaymentState.Failure -> {
+                Text(text = state.reason, fontSize = 14.sp, textAlign = TextAlign.Center)
+                Spacer(16.dp)
+                Button(onClick = { paymentState = PaymentState.WaitingForCard }) {
+                    Text("Try again")
+                }
+                Spacer(8.dp)
+                OutlinedButton(onClick = onCancel) {
+                    Text("Cancel")
+                }
+            }
+
+            else -> {
+                if (nfcAdapter != null && !nfcAdapter.isEnabled) {
+                    Text(text = "Turn on NFC to continue", fontSize = 14.sp)
+                    Spacer(16.dp)
+                    Button(onClick = { context.startActivity(Intent(Settings.ACTION_NFC_SETTINGS)) }) {
+                        Text("Open NFC settings")
+                    }
+                    Spacer(16.dp)
+                } else {
+                    Text(text = "Hold the STap wallet near the back of the phone", fontSize = 14.sp)
+                    Spacer(32.dp)
+                }
+                OutlinedButton(onClick = onCancel) {
+                    Text("Cancel")
+                }
+            }
         }
     }
 }
@@ -149,6 +202,6 @@ private fun PulsingContactlessIcon(modifier: Modifier = Modifier) {
 @Composable
 fun NfcListeningScreenPreview() {
     STapTerminalTheme {
-        NfcListeningScreen()
+        NfcListeningScreen(amount = "12.34", solanaClient = SolanaClient(SolanaNetwork.MAINNET))
     }
 }

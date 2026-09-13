@@ -4,13 +4,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.stapterminal"
+    namespace = "com.stapterminal"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.example.stapterminal"
+        applicationId = "com.stapterminal"
         minSdk = 24
         targetSdk = 37
         versionCode = 1
