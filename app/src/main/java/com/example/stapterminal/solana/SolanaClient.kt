@@ -29,11 +29,12 @@ class SolanaClient(network: SolanaNetwork) {
 
     /** Base58-encoded wallet address, used as the default account and, for transfers, the fee payer. */
     // this is the client public key
-    var publicKey: String = "E4MDwcLeBJWrRXF9SFXtZST9m61JAdTp5459Ww7LAcp"
+    // var publicKey: String = "E4MDwcLeBJWrRXF9SFXtZST9m61JAdTp5459Ww7LAcp"
+    var publicKey: String = "AgWkfRL1xL2U1XUNXE35SHcczUBV2wStZti7kBNGLkDQ"
 
     /** Base58-encoded secret key matching [publicKey]. Only required for [transferUsdc]. */
     // this is the client private key
-    var privateKey: String = "5wL6otBCf422DUvDRmkgK2cJBXZ6wRJFgsEVsc6QusUcNa8MkbPTTFBHUS1DAPBtCMMxFvgWZrVpfTbLWkNmCvZn"
+    var privateKey: String = "TODO"
 
     private val connection = Connection(
         when (network) {

@@ -64,7 +64,8 @@ class SolanaClientTest {
         val client = SolanaClient(SolanaNetwork.MAINNET)
         // Solana's System Program address always exists on every cluster, so this
         // is a safe address to query without needing a funded test wallet.
-        val address = "B1BUPRpzk12T2WqkUj1X221KTdv8Qf8skRPC2spe53ik"
+        // val address = "B1BUPRpzk12T2WqkUj1X221KTdv8Qf8skRPC2spe53ik"
+        val address = "5sG3pWuuRXvrxo4ca2VH87yHBQuEwTqAbXfqt3kFFgrz"
 
         val transactionSignature = client.transferUsdc(address, BigDecimal(0.1))
 
