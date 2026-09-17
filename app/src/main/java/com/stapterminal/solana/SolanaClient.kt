@@ -20,7 +20,7 @@ enum class SolanaNetwork {
 /**
  * Wrapper around the Solana JSON-RPC API for checking balances and sending USDC.
  *
- * Set [publicKey] before use. All network calls are suspend functions and switch to
+ * Set [merchantKey] before use. All network calls are suspend functions and switch to
  * [Dispatchers.IO] internally, so they are safe to call directly from a Composable's
  * coroutine scope or a ViewModel.
  */
@@ -31,7 +31,8 @@ class SolanaClient(network: SolanaNetwork) {
      * balance checks and as the recipient of USDC transfers. The terminal never holds a
      * private key - the payer's key lives on the STap wallet and signs over NFC.
      */
-    var publicKey: String = "E4MDwcLeBJWrRXF9SFXtZST9m61JAdTp5459Ww7LAcp"
+    // var publicKey: String = "E4MDwcLeBJWrRXF9SFXtZST9m61JAdTp5459Ww7LAcp"
+    var merchantKey: String = "B1BUPRpzk12T2WqkUj1X221KTdv8Qf8skRPC2spe53ik"
 
     private val connection = Connection(
         when (network) {
@@ -47,13 +48,13 @@ class SolanaClient(network: SolanaNetwork) {
         },
     )
 
-    /** SOL balance of [address] (defaults to [publicKey]), denominated in SOL. */
-    suspend fun getSolBalance(address: String = publicKey): BigDecimal = withContext(Dispatchers.IO) {
+    /** SOL balance of [address] (defaults to [merchantKey]), denominated in SOL. */
+    suspend fun getSolBalance(address: String = merchantKey): BigDecimal = withContext(Dispatchers.IO) {
         BigDecimal(connection.getBalance(PublicKey(address))).movePointLeft(LAMPORTS_PER_SOL_DECIMALS)
     }
 
-    /** USDC balance of [address] (defaults to [publicKey]). Returns zero if it has no USDC token account yet. */
-    suspend fun getUsdcBalance(address: String = publicKey): BigDecimal = withContext(Dispatchers.IO) {
+    /** USDC balance of [address] (defaults to [merchantKey]). Returns zero if it has no USDC token account yet. */
+    suspend fun getUsdcBalance(address: String = merchantKey): BigDecimal = withContext(Dispatchers.IO) {
         val tokenAccount = PublicKey.findProgramDerivedAddress(PublicKey(address), usdcMint).publicKey
         if (connection.getAccountInfo(tokenAccount) == null) {
             return@withContext BigDecimal.ZERO

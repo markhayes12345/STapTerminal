@@ -2,6 +2,7 @@ package com.stapterminal.nfc
 
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
+import android.util.Log
 import com.stapterminal.solana.SolanaClient
 import java.io.IOException
 import java.math.BigDecimal
@@ -34,12 +35,14 @@ class TerminalNfcTransactor(private val solanaClient: SolanaClient) {
             isoDep.connect()
             isoDep.timeout = 8000
 
+            Log.i("transactor", "start")
             val selectResponse = isoDep.transceive(StapNfcProtocol.buildSelectApdu())
             if (!selectResponse.isSuccessSw()) {
                 onStateChange(PaymentState.Failure("Could not connect to STap wallet"))
                 return
             }
             val fromAddress = String(selectResponse.responseData(), Charsets.US_ASCII)
+            Log.i("transactor", "fromAddress = ${fromAddress}")
             if (fromAddress.isBlank()) {
                 onStateChange(PaymentState.Failure("STap wallet is locked"))
                 return
@@ -47,7 +50,7 @@ class TerminalNfcTransactor(private val solanaClient: SolanaClient) {
             onStateChange(PaymentState.CardDetected)
 
             val message = try {
-                solanaClient.buildUsdcTransferMessage(fromAddress, solanaClient.publicKey, amount)
+                solanaClient.buildUsdcTransferMessage(fromAddress, solanaClient.merchantKey, amount)
             } catch (e: Exception) {
                 onStateChange(PaymentState.Failure("Could not prepare transaction: ${e.message}"))
                 return
@@ -55,21 +58,26 @@ class TerminalNfcTransactor(private val solanaClient: SolanaClient) {
 
             onStateChange(PaymentState.AwaitingSignature)
 
+            Log.i("transactor", "send message")
             val signature = sendMessageForSignature(isoDep, message.serialize())
             if (signature == null || signature.size != 64) {
                 onStateChange(PaymentState.Failure("Did not receive a valid signature from STap wallet"))
                 return
             }
+            Log.i("transactor", "submitting message")
 
             onStateChange(PaymentState.SubmittingTransaction)
 
             val txSignature = try {
+                Log.i("transactor", "message = ${message}")
                 solanaClient.submitSignedUsdcTransfer(message, signature)
             } catch (e: Exception) {
+                Log.e("transactor", "submitting message failed", e)
                 notifyStatus(isoDep, success = false, message = e.message ?: "Transaction failed")
                 onStateChange(PaymentState.Failure(e.message ?: "Transaction failed"))
                 return
             }
+            Log.i("transactor", "done")
 
             notifyStatus(isoDep, success = true, message = txSignature)
             onStateChange(PaymentState.Success(txSignature))

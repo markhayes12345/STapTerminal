@@ -45,6 +45,7 @@ import com.stapterminal.solana.SolanaClient
 import com.stapterminal.solana.SolanaNetwork
 import com.stapterminal.ui.theme.STapTerminalTheme
 import java.math.BigDecimal
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -64,11 +65,16 @@ fun NfcListeningScreen(
 
     DisposableEffect(Unit) {
         val activity = context as? Activity
+        val isProcessingTag = AtomicBoolean(false)
         val callback = NfcAdapter.ReaderCallback { tag ->
-            if (paymentState == PaymentState.WaitingForCard) {
+            if (isProcessingTag.compareAndSet(false, true)) {
                 scope.launch(Dispatchers.IO) {
-                    transactor.processTag(tag, BigDecimal(amount)) { state ->
-                        scope.launch { paymentState = state }
+                    try {
+                        transactor.processTag(tag, BigDecimal(amount)) { state ->
+                            scope.launch { paymentState = state }
+                        }
+                    } finally {
+                        isProcessingTag.set(false)
                     }
                 }
             }
