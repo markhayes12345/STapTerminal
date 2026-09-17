@@ -31,8 +31,7 @@ class SolanaClient(network: SolanaNetwork) {
      * balance checks and as the recipient of USDC transfers. The terminal never holds a
      * private key - the payer's key lives on the STap wallet and signs over NFC.
      */
-    // var publicKey: String = "E4MDwcLeBJWrRXF9SFXtZST9m61JAdTp5459Ww7LAcp"
-    var merchantKey: String = "B1BUPRpzk12T2WqkUj1X221KTdv8Qf8skRPC2spe53ik"
+    var merchantKey: String = "5sG3pWuuRXvrxo4ca2VH87yHBQuEwTqAbXfqt3kFFgrz"
 
     private val connection = Connection(
         when (network) {
