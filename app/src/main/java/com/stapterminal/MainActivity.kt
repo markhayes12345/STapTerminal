@@ -1,4 +1,4 @@
-package com.example.stapterminal
+package com.stapterminal
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -12,7 +12,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.example.stapterminal.ui.theme.STapTerminalTheme
+import com.stapterminal.solana.SolanaClient
+import com.stapterminal.solana.SolanaNetwork
+import com.stapterminal.ui.theme.STapTerminalTheme
 
 private sealed interface Screen {
     data object KeyPad : Screen
@@ -26,6 +28,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             STapTerminalTheme {
                 var screen by remember { mutableStateOf<Screen>(Screen.KeyPad) }
+                val solanaClient = remember { SolanaClient(SolanaNetwork.MAINNET) }
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     when (val current = screen) {
@@ -36,7 +39,10 @@ class MainActivity : ComponentActivity() {
 
                         is Screen.NfcListening -> NfcListeningScreen(
                             modifier = Modifier.padding(innerPadding),
-                            onCancel = { screen = Screen.KeyPad }
+                            amount = current.amount,
+                            solanaClient = solanaClient,
+                            onCancel = { screen = Screen.KeyPad },
+                            onFinished = { screen = Screen.KeyPad }
                         )
                     }
                 }

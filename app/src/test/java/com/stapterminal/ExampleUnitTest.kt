@@ -1,4 +1,4 @@
-package com.example.stapterminal
+package com.stapterminal
 
 import org.junit.Test
 
